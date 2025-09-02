@@ -205,3 +205,52 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+# ======================
+# Immortal Logic System™
+# ======================
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Virtual environments
+venv/
+.env/
+.venv/
+
+# Logs & temp files
+*.log
+*.tmp
+*.swp
+
+# IDE / Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+*.pid
+*.seed
+*.bak
+docker-compose.override.yml
+
+# Coverage / testing
+.coverage
+htmlcov/
+.cache/
+pytest_cache/
+junit-*.xml
