@@ -1,0 +1,17 @@
+services:
+  sdk:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.sdk
+    environment:
+      - LOG_LEVEL=INFO
+  anchorchain:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.anchor
+    ports: ["8080:8080"]
+    environment:
+      - WEB3_PROVIDER_URL=${WEB3_PROVIDER_URL}
+      - ANCHORCHAIN_CONTRACT_ADDRESS=${ANCHORCHAIN_CONTRACT_ADDRESS}
+      - FOUNDER_PRIVATE_KEY=${FOUNDER_PRIVATE_KEY}
+      - ANCHORCHAIN_ABI_PATH=/app/anchorchain/abi/AnchorChain.json

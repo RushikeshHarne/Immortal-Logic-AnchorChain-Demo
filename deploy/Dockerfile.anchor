@@ -1,0 +1,8 @@
+FROM python:3.11-slim
+WORKDIR /app
+COPY anchorchain/api/requirements.txt .
+RUN pip install -r requirements.txt
+COPY anchorchain /app/anchorchain
+EXPOSE 8080
+ENV WEB3_PROVIDER_URL="" ANCHORCHAIN_CONTRACT_ADDRESS="" FOUNDER_PRIVATE_KEY="" ANCHORCHAIN_ABI_PATH="/app/anchorchain/abi/AnchorChain.json"
+CMD ["uvicorn","anchorchain.api.anchorchain_api:app","--host","0.0.0.0","--port","8080"]
