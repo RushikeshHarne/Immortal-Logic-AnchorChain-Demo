@@ -1,0 +1,36 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "AnchorChain Metrics",
+    "tags": ["anchorchain"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Successful Transactions",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "anchorchain_tx_ok",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Failed Transactions",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "anchorchain_tx_err",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      }
+    ],
+    "time": {"from": "now-1h", "to": "now"},
+    "refresh": "5s"
+  }
+}

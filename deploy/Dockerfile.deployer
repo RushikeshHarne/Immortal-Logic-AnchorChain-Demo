@@ -1,0 +1,16 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install dependencies
+RUN apk add --no-cache bash curl
+
+# Copy hardhat project
+COPY hardhat/ ./
+RUN npm install
+
+# Copy deployment script
+COPY deploy.sh .
+RUN chmod +x deploy.sh
+
+CMD ["./deploy.sh"]

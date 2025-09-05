@@ -1,0 +1,7 @@
+FROM ghcr.io/foundry-rs/foundry:latest
+
+COPY start-anvil.sh /start-anvil.sh
+
+EXPOSE 8545
+
+CMD ["/start-anvil.sh"]

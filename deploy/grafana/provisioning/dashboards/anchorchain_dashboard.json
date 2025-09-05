@@ -1,0 +1,52 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "AnchorChain Resurrection Metrics",
+    "tags": ["anchorchain", "ai", "resurrection"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Successful Resurrections",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "anchorchain_tx_ok",
+            "legendFormat": "Success Count"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Failed Resurrections", 
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "anchorchain_tx_err",
+            "legendFormat": "Error Count"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Resurrection Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(anchorchain_tx_ok[5m])",
+            "legendFormat": "Success Rate"
+          },
+          {
+            "expr": "rate(anchorchain_tx_err[5m])",
+            "legendFormat": "Error Rate"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+      }
+    ],
+    "time": {"from": "now-1h", "to": "now"},
+    "refresh": "5s"
+  }
+}
