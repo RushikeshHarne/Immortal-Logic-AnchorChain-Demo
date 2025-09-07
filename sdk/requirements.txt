@@ -1,6 +1,2 @@
-fastapi
-uvicorn
-web3
-requests
-python-dotenv
-prometheus-client
+requests==2.31.0
+web3==6.11.3

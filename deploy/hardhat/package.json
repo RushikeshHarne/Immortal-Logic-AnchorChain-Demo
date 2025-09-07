@@ -1,8 +1,8 @@
 {
-  "name": "anchorchain-deployer",
+  "name": "anchorchain-hardhat",
   "version": "1.0.0",
   "scripts": {
-    "deploy": "hardhat run scripts/deploy.js"
+    "deploy": "node scripts/deploy.js"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",

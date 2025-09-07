@@ -3,6 +3,7 @@
     "id": null,
     "title": "AnchorChain Metrics",
     "tags": ["anchorchain"],
+    "style": "dark",
     "timezone": "browser",
     "panels": [
       {
@@ -11,11 +12,31 @@
         "type": "stat",
         "targets": [
           {
-            "expr": "anchorchain_tx_ok",
+            "expr": "anchorchain_tx_ok_total",
             "refId": "A"
           }
         ],
-        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
       },
       {
         "id": 2,
@@ -23,14 +44,60 @@
         "type": "stat",
         "targets": [
           {
-            "expr": "anchorchain_tx_err",
+            "expr": "anchorchain_tx_err_total",
             "refId": "A"
           }
         ],
-        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Transaction Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(anchorchain_tx_ok_total[5m])",
+            "legendFormat": "Success Rate",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(anchorchain_tx_err_total[5m])",
+            "legendFormat": "Error Rate",
+            "refId": "B"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 8
+        }
       }
     ],
-    "time": {"from": "now-1h", "to": "now"},
+    "time": {
+      "from": "now-5m",
+      "to": "now"
+    },
     "refresh": "5s"
   }
 }

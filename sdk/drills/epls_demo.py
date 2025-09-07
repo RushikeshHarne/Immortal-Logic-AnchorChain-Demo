@@ -1,66 +1,92 @@
 #!/usr/bin/env python3
-
+"""
+Immortal Logic EPLS Demo - End-to-end resurrection drill
+"""
 import requests
-import json
 import time
 import argparse
+import hashlib
+import json
 
-def test_api(base_url="http://localhost:8000", token="demo-token-123"):
+def generate_soul_hash(entity_id: str) -> str:
+    """Generate a soul state hash"""
+    timestamp = str(int(time.time()))
+    data = f"{entity_id}:{timestamp}"
+    return hashlib.sha256(data.encode()).hexdigest()
+
+def test_api_endpoint(base_url: str, token: str):
+    """Test the AnchorChain API"""
     headers = {"Authorization": f"Bearer {token}"}
     
-    print(f"Testing AnchorChain API at {base_url}")
+    print(f"🔗 Testing AnchorChain API at {base_url}")
     
-    # Test root endpoint
-    print("\n1. Testing root endpoint...")
-    response = requests.get(f"{base_url}/")
-    print(f"Status: {response.status_code}")
-    print(f"Response: {response.json()}")
+    # Test health endpoint
+    try:
+        response = requests.get(f"{base_url}/health")
+        print(f"✅ Health check: {response.json()}")
+    except Exception as e:
+        print(f"❌ Health check failed: {e}")
+        return False
     
     # Test metrics endpoint
-    print("\n2. Testing metrics endpoint...")
-    response = requests.get(f"{base_url}/metrics")
-    print(f"Status: {response.status_code}")
-    print("Metrics preview:")
-    for line in response.text.split('\n')[:10]:
-        if 'anchorchain' in line:
-            print(f"  {line}")
+    try:
+        response = requests.get(f"{base_url}/metrics")
+        print(f"✅ Metrics endpoint accessible (length: {len(response.text)})")
+    except Exception as e:
+        print(f"❌ Metrics check failed: {e}")
     
     # Test anchor endpoint
-    print("\n3. Testing anchor endpoint...")
-    anchor_data = {
-        "soul_id": "test-soul-001",
-        "state_hash": "0x1234567890abcdef"
-    }
-    
-    response = requests.post(
-        f"{base_url}/anchor",
-        json=anchor_data,
-        headers=headers
-    )
-    
-    print(f"Status: {response.status_code}")
-    if response.status_code == 200:
-        result = response.json()
-        print(f"Success! TX Hash: {result['tx_hash']}")
-        print(f"Block Number: {result['block_number']}")
-    else:
-        print(f"Error: {response.text}")
-    
-    # Check metrics again
-    print("\n4. Checking updated metrics...")
-    time.sleep(2)
-    response = requests.get(f"{base_url}/metrics")
-    for line in response.text.split('\n'):
-        if 'anchorchain_tx' in line and not line.startswith('#'):
-            print(f"  {line}")
+    try:
+        soul_hash = generate_soul_hash("demo-entity-001")
+        metadata = f"Demo resurrection event at {time.strftime('%Y-%m-%d %H:%M:%S')}"
+        
+        payload = {
+            "soul_hash": soul_hash,
+            "metadata": metadata
+        }
+        
+        print(f"📡 Anchoring soul state: {soul_hash[:16]}...")
+        response = requests.post(f"{base_url}/anchor", json=payload, headers=headers)
+        
+        if response.status_code == 200:
+            result = response.json()
+            print(f"✅ Anchor successful: {result}")
+            return True
+        else:
+            print(f"❌ Anchor failed: {response.status_code} - {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Anchor test failed: {e}")
+        return False
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Test AnchorChain API')
-    parser.add_argument('--mode', choices=['local', 'testnet'], default='local')
-    parser.add_argument('--url', default='http://localhost:8000')
-    parser.add_argument('--token', default='demo-token-123')
+def main():
+    parser = argparse.ArgumentParser(description="Immortal Logic EPLS Demo")
+    parser.add_argument("--mode", choices=["local", "onchain"], default="local",
+                       help="Demo mode: local (mock) or onchain (real blockchain)")
+    parser.add_argument("--api-url", default="http://localhost:8000",
+                       help="AnchorChain API URL")
+    parser.add_argument("--token", default="demo-token-123",
+                       help="API authentication token")
     
     args = parser.parse_args()
     
-    print(f"Running in {args.mode} mode")
-    test_api(args.url, args.token)
+    print("🚀 Immortal Logic EPLS Demo Starting...")
+    print(f"Mode: {args.mode}")
+    print(f"API URL: {args.api_url}")
+    
+    # Run the test
+    success = test_api_endpoint(args.api_url, args.token)
+    
+    if success:
+        print("\n✅ Demo completed successfully!")
+        print("📊 Check Grafana dashboard at http://localhost:3000 (admin/admin)")
+        print("📈 Check Prometheus at http://localhost:9090")
+    else:
+        print("\n❌ Demo failed!")
+        return 1
+    
+    return 0
+
+if __name__ == "__main__":
+    exit(main())

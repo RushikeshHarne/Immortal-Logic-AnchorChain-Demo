@@ -1,0 +1,5 @@
+FROM python:3.11-slim
+WORKDIR /app
+RUN pip install fastapi uvicorn prometheus-client
+COPY simple_metrics_api.py .
+CMD ["python", "simple_metrics_api.py"]

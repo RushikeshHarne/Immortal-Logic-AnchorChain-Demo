@@ -1,10 +1,33 @@
-const fs = require('fs');
-const path = require('path');
+const hre = require("hardhat");
+const fs = require("fs");
+const path = require("path");
 
 async function main() {
+  console.log("Compiling contracts...");
+  
+  // Compile contracts first
+  await hre.run("compile");
+  
   console.log("Deploying AnchorChain contract...");
   
-  const AnchorChain = await ethers.getContractFactory("AnchorChain");
+  // Wait for network to be ready
+  let retries = 30;
+  while (retries > 0) {
+    try {
+      await hre.ethers.provider.getNetwork();
+      break;
+    } catch (error) {
+      console.log(`Waiting for network... (${retries} retries left)`);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      retries--;
+    }
+  }
+  
+  if (retries === 0) {
+    throw new Error("Network not available");
+  }
+
+  const AnchorChain = await hre.ethers.getContractFactory("AnchorChain");
   const anchorChain = await AnchorChain.deploy();
   
   await anchorChain.waitForDeployment();
@@ -15,26 +38,29 @@ async function main() {
   // Get ABI
   const artifact = await hre.artifacts.readArtifact("AnchorChain");
   
-  // Write contract info to shared volume
+  // Save contract info to shared volume
   const contractInfo = {
     address: address,
-    abi: artifact.abi
+    abi: artifact.abi,
+    deployedAt: new Date().toISOString()
   };
   
-  const outputDir = '/shared/anchor';
+  const outputDir = "/shared/anchor";
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
   
   fs.writeFileSync(
-    path.join(outputDir, 'contract.json'),
+    path.join(outputDir, "contract.json"),
     JSON.stringify(contractInfo, null, 2)
   );
   
-  console.log("Contract info written to /shared/anchor/contract.json");
+  console.log("Contract info saved to /shared/anchor/contract.json");
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });

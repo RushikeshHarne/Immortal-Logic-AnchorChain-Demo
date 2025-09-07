@@ -1,82 +1,167 @@
-# AnchorChain Deployment Guide
+# Immortal Logic Deployment Guide
 
 ## Docker Demo Stack
 
-### Local Development (Anvil Chain)
+### Prerequisites
+- Docker & Docker Compose installed
+- 8GB+ RAM recommended
+- Ports 3000, 8000, 8545, 9090 available
 
+### Quick Start
+
+#### Local Blockchain Demo
 ```bash
+# Clone and setup
+git clone https://github.com/Nova1000x/immortal-logic.git
+cd immortal-logic
+
 # Start local demo stack
-cd deploy/
 docker compose --profile local up --build
 
-# Access points:
-# - API: http://localhost:8000
-# - Grafana: http://localhost:3000 (admin/admin)
-# - Prometheus: http://localhost:9090
-# - Blockchain RPC: http://localhost:8545
+# Wait for all services to start (2-3 minutes)
+# Check logs: docker compose logs -f
 ```
 
-### Testnet Mode (Sepolia/Polygon Amoy)
-
+#### Testnet Demo (Sepolia/Polygon Amoy)
 ```bash
 # Copy environment template
 cp .env.example .env
 
 # Edit .env with your testnet credentials:
 # RPC_URL=https://sepolia.infura.io/v3/YOUR_PROJECT_ID
-# PRIVATE_KEY=0x...
-# CHAIN_ID=11155111
+# PRIVATE_KEY=0x1234567890abcdef... (funded testnet account)
+# CHAIN_ID=11155111 (Sepolia) or 80002 (Polygon Amoy)
 
-# Start testnet stack
+# Start testnet demo
 docker compose --profile testnet --env-file .env up --build
 ```
 
-### Testing the API
+### Service URLs
+- **AnchorChain API**: http://localhost:8000
+- **Grafana Dashboard**: http://localhost:3000 (admin/admin)
+- **Prometheus Metrics**: http://localhost:9090
+- **Local Blockchain RPC**: http://localhost:8545
 
+### Testing the Demo
+
+#### Manual API Testing
 ```bash
+# Health check
+curl http://localhost:8000/health
+
+# Check metrics
+curl http://localhost:8000/metrics
+
+# Anchor a soul state (requires Bearer token)
+curl -X POST http://localhost:8000/anchor \
+  -H "Authorization: Bearer demo-token-123" \
+  -H "Content-Type: application/json" \
+  -d '{"soul_hash": "test123", "metadata": "Demo resurrection event"}'
+```
+
+#### Automated Demo Script
+```bash
+# Install Python dependencies
+pip install requests
+
 # Run demo script
 python sdk/drills/epls_demo.py --mode=local
 
-# Manual API test
-curl http://localhost:8000/
-curl -H "Authorization: Bearer demo-token-123" \
-     -H "Content-Type: application/json" \
-     -d '{"soul_id":"test-001","state_hash":"0xabc123"}' \
-     http://localhost:8000/anchor
+# For testnet mode
+python sdk/drills/epls_demo.py --mode=onchain --api-url=http://localhost:8000
 ```
 
 ### Monitoring
 
-- **Grafana Dashboard**: http://localhost:3000
-  - Username: `admin`
-  - Password: `admin`
-  - View AnchorChain metrics: `anchorchain_tx_ok` and `anchorchain_tx_err`
+#### Grafana Dashboard
+1. Open http://localhost:3000
+2. Login: admin/admin
+3. Navigate to "AnchorChain Metrics" dashboard
+4. Monitor `anchorchain_tx_ok` and `anchorchain_tx_err` counters
 
-- **Prometheus**: http://localhost:9090
-  - Direct metrics access: http://localhost:8000/metrics
+#### Prometheus Metrics
+- `anchorchain_tx_ok_total` - Successful transactions
+- `anchorchain_tx_err_total` - Failed transactions
 
-### Cleanup
+### Architecture
 
-```bash
-# Stop all services
-docker compose --profile local down
-docker compose --profile testnet down
-
-# Remove volumes
-docker compose down -v
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Anvil/Hardhat │    │   Deployer       │    │  AnchorChain    │
+│   (Blockchain)  │◄───┤   Container      │───►│  API            │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                                │                        │
+                       ┌────────▼────────┐              │
+                       │  Shared Volume  │              │
+                       │  /shared/anchor │              │
+                       │  contract.json  │              │
+                       └─────────────────┘              │
+                                                        │
+┌─────────────────┐    ┌──────────────────┐            │
+│   Grafana       │◄───┤   Prometheus     │◄───────────┘
+│   Dashboard     │    │   Metrics        │
+└─────────────────┘    └──────────────────┘
 ```
 
-## Architecture
+### Troubleshooting
 
-1. **Anvil/Testnet**: Local blockchain or external testnet
-2. **Deployer**: Compiles and deploys AnchorChain.sol contract
-3. **API**: FastAPI service exposing `/anchor` endpoint
-4. **Prometheus**: Scrapes metrics from API
-5. **Grafana**: Visualizes transaction success/failure rates
+#### Common Issues
 
-## Security Notes
+**Services not starting:**
+```bash
+# Check logs
+docker compose logs -f
 
-- Demo uses bearer token authentication (`API_TOKEN`)
-- Local mode binds to `0.0.0.0`, testnet mode to `127.0.0.1`
-- Never commit private keys to version control
-- Use throwaway testnet keys only
+# Restart specific service
+docker compose restart anchorchain-api
+```
+
+**Contract deployment failed:**
+```bash
+# Check deployer logs
+docker compose logs deployer
+
+# Verify blockchain is running
+curl -X POST http://localhost:8545 \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
+```
+
+**API not connecting to contract:**
+```bash
+# Check shared volume
+docker compose exec anchorchain-api ls -la /shared/anchor/
+
+# Restart API after contract deployment
+docker compose restart anchorchain-api
+```
+
+#### Clean Reset
+```bash
+# Stop all services
+docker compose down
+
+# Remove volumes and rebuild
+docker compose down -v
+docker compose --profile local up --build
+```
+
+### Security Notes (Demo Level)
+
+- Default API token: `demo-token-123`
+- Default private key is Anvil's first account (public knowledge)
+- Services bind to localhost by default
+- No TLS/HTTPS in demo mode
+- Use throwaway testnet accounts only
+
+### Production Considerations
+
+For production deployment:
+- Use proper secret management (AWS Secrets Manager, etc.)
+- Enable TLS/HTTPS
+- Implement proper authentication/authorization
+- Use managed blockchain services
+- Add proper logging and monitoring
+- Implement backup and disaster recovery
+- Use Kubernetes for orchestration
+- Add rate limiting and DDoS protection

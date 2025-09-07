@@ -1,112 +1,144 @@
-import os
 import json
+import os
 from fastapi import FastAPI, HTTPException, Depends, Header
 from prometheus_client import Counter, generate_latest, CONTENT_TYPE_LATEST
+from fastapi.responses import Response
 from web3 import Web3
 from typing import Optional
-import uvicorn
+import time
 
-app = FastAPI(title="AnchorChain API")
+app = FastAPI(title="AnchorChain API", description="Immortal Logic AnchorChain API")
 
 # Prometheus metrics
-tx_ok_counter = Counter('anchorchain_tx_ok', 'Successful anchor transactions')
-tx_err_counter = Counter('anchorchain_tx_err', 'Failed anchor transactions')
+tx_ok_counter = Counter('anchorchain_tx_ok', 'Successful AnchorChain transactions')
+tx_err_counter = Counter('anchorchain_tx_err', 'Failed AnchorChain transactions')
 
-# Global variables
+# Configuration
+API_TOKEN = os.getenv('API_TOKEN', 'demo-token-123')
+RPC_URL = os.getenv('RPC_URL', 'http://anvil:8545')
+PRIVATE_KEY = os.getenv('PRIVATE_KEY')
+
+# Web3 setup
 w3 = None
 contract = None
-contract_address = None
+account = None
 
 def load_contract():
-    global w3, contract, contract_address
-    
+    global w3, contract, account
     try:
-        # Load contract info from shared volume
-        with open('/shared/anchor/contract.json', 'r') as f:
-            contract_info = json.load(f)
+        w3 = Web3(Web3.HTTPProvider(RPC_URL))
         
-        contract_address = contract_info['address']
-        abi = contract_info['abi']
-        
-        # Connect to blockchain
-        rpc_url = os.getenv('RPC_URL', 'http://anvil:8545')
-        w3 = Web3(Web3.HTTPProvider(rpc_url))
-        
-        # Load contract
-        contract = w3.eth.contract(address=contract_address, abi=abi)
-        
-        return True
+        # Load contract from shared volume
+        contract_path = '/shared/anchor/contract.json'
+        if os.path.exists(contract_path):
+            with open(contract_path, 'r') as f:
+                contract_data = json.load(f)
+            
+            contract = w3.eth.contract(
+                address=contract_data['address'],
+                abi=contract_data['abi']
+            )
+            
+            if PRIVATE_KEY:
+                account = w3.eth.account.from_key(PRIVATE_KEY)
+            
+            return True
     except Exception as e:
-        print(f"Failed to load contract: {e}")
-        return False
+        print(f"Contract loading error: {e}")
+    return False
 
 def verify_token(authorization: Optional[str] = Header(None)):
-    expected_token = os.getenv('API_TOKEN', 'demo-token-123')
-    if not authorization or authorization != f"Bearer {expected_token}":
+    if authorization != f"Bearer {API_TOKEN}":
         raise HTTPException(status_code=401, detail="Invalid token")
+
+@app.on_event("startup")
+async def startup():
+    # Wait for contract deployment
+    for _ in range(30):
+        if load_contract():
+            break
+        time.sleep(2)
 
 @app.get("/")
 async def root():
-    return {"message": "AnchorChain API running", "contract": contract_address}
+    return {"message": "AnchorChain API running", "status": "ok"}
 
-@app.get("/metrics")
-async def metrics():
-    from fastapi import Response
-    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+@app.get("/health")
+async def health():
+    contract_loaded = contract is not None
+    return {
+        "status": "healthy",
+        "contract_loaded": contract_loaded,
+        "rpc_url": RPC_URL,
+        "chain_connected": w3.is_connected() if w3 else False
+    }
+
+from pydantic import BaseModel
+
+class AnchorRequest(BaseModel):
+    soul_hash: str
+    metadata: str = ""
 
 @app.post("/anchor")
-async def anchor_event(
-    soul_id: str,
-    state_hash: str,
+async def anchor_soul_state(
+    request: AnchorRequest,
     _: str = Depends(verify_token)
 ):
-    if not contract:
-        raise HTTPException(status_code=503, detail="Contract not loaded")
-    
     try:
-        # Get account (for demo, use first account)
-        accounts = w3.eth.accounts
-        if not accounts:
-            # For testnet, we need to add the private key
-            private_key = os.getenv('PRIVATE_KEY')
-            if private_key:
-                account = w3.eth.account.from_key(private_key)
-                w3.eth.default_account = account.address
-            else:
-                raise Exception("No accounts available")
-        else:
-            w3.eth.default_account = accounts[0]
+        if not contract or not account:
+            raise HTTPException(status_code=503, detail="Contract not available")
         
-        # Call contract
-        tx_hash = contract.functions.anchorSoulState(
-            soul_id, state_hash
-        ).transact()
+        # Convert soul_hash to bytes32
+        hash_bytes = Web3.keccak(text=request.soul_hash)
         
+        # Build transaction
+        tx = contract.functions.anchorSoulState(hash_bytes, request.metadata).build_transaction({
+            'from': account.address,
+            'nonce': w3.eth.get_transaction_count(account.address),
+            'gas': 200000,
+            'gasPrice': w3.to_wei('20', 'gwei')
+        })
+        
+        # Sign and send
+        signed_tx = w3.eth.account.sign_transaction(tx, PRIVATE_KEY)
+        tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
         receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
         
         tx_ok_counter.inc()
         
         return {
-            "success": True,
-            "tx_hash": tx_hash.hex(),
-            "block_number": receipt.blockNumber
+            "transaction_hash": receipt.transactionHash.hex(),
+            "block_number": receipt.blockNumber,
+            "status": "success",
+            "gas_used": receipt.gasUsed
         }
         
     except Exception as e:
         tx_err_counter.inc()
         raise HTTPException(status_code=500, detail=str(e))
 
-if __name__ == "__main__":
-    # Wait for contract to be deployed
-    import time
-    while not load_contract():
-        print("Waiting for contract deployment...")
-        time.sleep(5)
-    
-    host = os.getenv('HOST', '0.0.0.0')
-    port = int(os.getenv('PORT', 8000))
-    
-    print(f"Starting AnchorChain API at http://{host}:{port}")
-    print(f"Grafana dashboard: http://localhost:3000")
-    
-    uvicorn.run(app, host=host, port=port)
+@app.get("/soul-state/{address}")
+async def get_soul_states(address: str):
+    try:
+        if not contract:
+            raise HTTPException(status_code=503, detail="Contract not available")
+        
+        count = contract.functions.getSoulStateCount(address).call()
+        states = []
+        
+        for i in range(count):
+            state = contract.functions.getSoulState(address, i).call()
+            states.append({
+                "hash": state[0].hex(),
+                "timestamp": state[1],
+                "metadata": state[2]
+            })
+        
+        return {"address": address, "states": states, "count": count}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/metrics")
+async def metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)

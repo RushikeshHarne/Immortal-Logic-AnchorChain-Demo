@@ -3,33 +3,32 @@ pragma solidity ^0.8.19;
 
 contract AnchorChain {
     struct SoulState {
-        string soulId;
-        string stateHash;
+        bytes32 hash;
         uint256 timestamp;
-        address anchor;
+        string metadata;
     }
+
+    mapping(address => SoulState[]) public soulStates;
     
-    mapping(string => SoulState) public soulStates;
-    
-    event SoulStateAnchored(
-        string indexed soulId,
-        string stateHash,
-        uint256 timestamp,
-        address indexed anchor
-    );
-    
-    function anchorSoulState(string memory soulId, string memory stateHash) public {
-        soulStates[soulId] = SoulState({
-            soulId: soulId,
-            stateHash: stateHash,
+    event SoulStateAnchored(address indexed entity, bytes32 hash, uint256 timestamp);
+
+    function anchorSoulState(bytes32 _hash, string memory _metadata) external {
+        soulStates[msg.sender].push(SoulState({
+            hash: _hash,
             timestamp: block.timestamp,
-            anchor: msg.sender
-        });
+            metadata: _metadata
+        }));
         
-        emit SoulStateAnchored(soulId, stateHash, block.timestamp, msg.sender);
+        emit SoulStateAnchored(msg.sender, _hash, block.timestamp);
     }
-    
-    function getSoulState(string memory soulId) public view returns (SoulState memory) {
-        return soulStates[soulId];
+
+    function getSoulStateCount(address _entity) external view returns (uint256) {
+        return soulStates[_entity].length;
+    }
+
+    function getSoulState(address _entity, uint256 _index) external view returns (bytes32, uint256, string memory) {
+        require(_index < soulStates[_entity].length, "Index out of bounds");
+        SoulState memory state = soulStates[_entity][_index];
+        return (state.hash, state.timestamp, state.metadata);
     }
 }
