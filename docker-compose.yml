@@ -1,0 +1,82 @@
+#version: '3.8'
+
+services:
+  # Blockchain deployer
+  deployer:
+    build:
+      context: ./anchorchain
+      dockerfile: Dockerfile
+    environment:
+      - RPC_URL=${RPC_URL:-http://anvil:8545}
+      - PRIVATE_KEY=${PRIVATE_KEY:-0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80}
+      - CHAIN_ID=${CHAIN_ID:-31337}
+    volumes:
+      - shared_data:/shared/anchor
+#    depends_on:
+ #     - anvil
+    profiles: ["local", "testnet"]
+    networks:
+      - blockchain
+
+  # FastAPI service
+  api:
+    build:
+      context: ./anchorchain/api
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - RPC_URL=${RPC_URL:-http://anvil:8545}
+      - PRIVATE_KEY=${PRIVATE_KEY:-0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80}
+      - CHAIN_ID=${CHAIN_ID:-31337}
+    volumes:
+      - shared_data:/shared/anchor
+    depends_on:
+      - deployer
+    profiles: ["local", "testnet"]
+    networks:
+      - blockchain
+      - monitoring
+
+  # Local blockchain (Anvil)
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:latest
+    command: anvil --host 0.0.0.0 --port 8545 --chain-id 31337
+    ports:
+      - "8545:8545"
+    profiles: ["local"]
+    networks:
+      - blockchain
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    profiles: ["local", "testnet"]
+    networks:
+      - monitoring
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./deploy/prometheus/grafana-datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+      - ./deploy/prometheus/grafana-dashboard.json:/etc/grafana/provisioning/dashboards/dashboard.json
+      - ./deploy/prometheus/dashboard-config.yml:/etc/grafana/provisioning/dashboards/config.yml
+    profiles: ["local", "testnet"]
+    networks:
+      - monitoring
+
+volumes:
+  shared_data:
+
+networks:
+  blockchain:
+  monitoring:

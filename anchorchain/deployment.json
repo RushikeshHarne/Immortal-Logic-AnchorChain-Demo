@@ -1,0 +1,22 @@
+{
+  "contract_address": "0x1234567890123456789012345678901234567890",
+  "transaction_hash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+  "block_number": 12345,
+  "gas_used": 500000,
+  "abi": [
+    {
+      "inputs": [
+        {"name": "_agentId", "type": "string"},
+        {"name": "_sourceEmbodiment", "type": "string"},
+        {"name": "_targetEmbodiment", "type": "string"},
+        {"name": "_identityHash", "type": "bytes32"},
+        {"name": "_missionHash", "type": "bytes32"},
+        {"name": "_jurisdiction", "type": "string"}
+      ],
+      "name": "recordResurrection",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ]
+}

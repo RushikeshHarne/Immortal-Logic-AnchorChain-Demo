@@ -1,96 +1,41 @@
 version: '3.8'
 
 services:
-  # Local blockchain (Anvil)
-  anvil:
-    image: ghcr.io/foundry-rs/foundry:latest
-    profiles: ["local"]
-    command: anvil --host 0.0.0.0 --port 8545 --accounts 10 --balance 1000
-    ports:
-      - "8545:8545"
-    networks:
-      - anchorchain-net
-
-  # Hardhat local node (alternative to Anvil)
-  hardhat:
+  # Transaction Monitor
+  tx-monitor:
     build:
-      context: ./hardhat
-      dockerfile: Dockerfile
-    profiles: ["hardhat"]
-    ports:
-      - "8545:8545"
-    networks:
-      - anchorchain-net
-
-  # Contract deployer
-  deployer:
-    build:
-      context: ./hardhat
-      dockerfile: Dockerfile.deployer
-    profiles: ["local", "testnet"]
-    environment:
-      - RPC_URL=${RPC_URL:-http://anvil:8545}
-      - PRIVATE_KEY=${PRIVATE_KEY:-0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80}
-      - CHAIN_ID=${CHAIN_ID:-31337}
-    volumes:
-      - shared-data:/shared/anchor
-    depends_on:
-      - anvil
-    networks:
-      - anchorchain-net
-
-  # AnchorChain API
-  anchorchain-api:
-    build:
-      context: .
-      dockerfile: Dockerfile.api
-    profiles: ["local", "testnet"]
+      context: ../
+      dockerfile: deploy/Dockerfile.monitor
     ports:
       - "8000:8000"
-    environment:
-      - API_TOKEN=${API_TOKEN:-demo-token-123}
-      - RPC_URL=${RPC_URL:-http://anvil:8545}
-      - PRIVATE_KEY=${PRIVATE_KEY:-0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80}
-    volumes:
-      - shared-data:/shared/anchor
-    depends_on:
-      - deployer
     networks:
-      - anchorchain-net
+      - immortal-net
 
   # Prometheus
   prometheus:
     image: prom/prometheus:latest
-    profiles: ["local", "testnet"]
     ports:
       - "9090:9090"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
     networks:
-      - anchorchain-net
+      - immortal-net
 
   # Grafana
   grafana:
     image: grafana/grafana:latest
-    profiles: ["local", "testnet"]
     ports:
       - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning
-      - ./grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana-storage:/var/lib/grafana
     networks:
-      - anchorchain-net
-
-volumes:
-  shared-data:
+      - immortal-net
 
 networks:
-  anchorchain-net:
+  immortal-net:
     driver: bridge
+
+volumes:
+  grafana-storage:
