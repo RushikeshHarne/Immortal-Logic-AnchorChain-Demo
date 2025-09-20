@@ -1,0 +1,63 @@
+{
+  "dashboard": {
+    "title": "AnchorChain Monitoring",
+    "panels": [
+      {
+        "title": "Transaction Success Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(anchorchain_tx_ok_total[5m])",
+            "legendFormat": "Success"
+          },
+          {
+            "expr": "rate(anchorchain_tx_err_total[5m])",
+            "legendFormat": "Error"
+          }
+        ]
+      },
+      {
+        "title": "Resurrection Verification",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(resurrection_verify_pass_total[5m])",
+            "legendFormat": "Pass"
+          },
+          {
+            "expr": "rate(resurrection_verify_fail_total[5m])",
+            "legendFormat": "Fail"
+          }
+        ]
+      },
+      {
+        "title": "Gas Cost Distribution",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(anchorchain_gas_cost_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(anchorchain_gas_cost_bucket[5m]))",
+            "legendFormat": "50th percentile"
+          }
+        ]
+      },
+      {
+        "title": "Confirmation Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(anchorchain_confirmation_time_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(anchorchain_confirmation_time_seconds_bucket[5m]))",
+            "legendFormat": "50th percentile"
+          }
+        ]
+      }
+    ]
+  }
+}

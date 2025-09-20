@@ -1,0 +1,10 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+COPY anchorchain/contracts/package.json .
+RUN npm install
+
+COPY anchorchain/contracts/ .
+
+CMD ["sh", "-c", "if [ \"$NETWORK\" = \"testnet\" ]; then npm run deploy:testnet; else npm run deploy:local; fi"]

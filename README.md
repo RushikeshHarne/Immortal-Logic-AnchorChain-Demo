@@ -9,30 +9,25 @@ Sovereign-grade continuity framework for AI — including **Soul-State transfer,
 immortal-logic/
 │
 ├── anchorchain/ # AnchorChain smart contract + API
-│ ├── api/ # Python API bindings
+│ ├── api/ # FastAPI service
 │ ├── contracts/ # Solidity contracts
-│ └── migrations/ # Deployment scripts
+│ └── Dockerfile # Container for deployment
 │
-├── deploy/ # DevOps deployment configs
-│ ├── Dockerfile.anchor # Container for AnchorChain
-│ ├── docker-compose.yml # Local demo stack
-│ ├── helm/ # Kubernetes Helm charts
-│ ├── k8s/ # Kubernetes manifests
-│ └── prometheus/ # Monitoring
+├── deploy/ # Deployment configs
+│ ├── api/ # API deployment files
+│ ├── prometheus/ # Monitoring configs
+│ ├── Dockerfile.anchor # AnchorChain container
+│ └── Dockerfile.api # API container
 │
 ├── docs/ # Documentation
-│ ├── OVERVIEW.md # System overview
-│ ├── DEPLOYMENT_GUIDE.md # How to deploy locally & to cloud
-│ ├── INTEGRATION_GUIDE.md # How to integrate SDK & API
-│ └── API_REFERENCE.md # Developer API docs
+│ └── DEPLOYMENT_GUIDE.md # Deployment instructions
 │
 ├── sdk/ # SDK for Immortal Logic
-│ ├── drills/ # Resurrection drills
-│ ├── src/ # Core library
-│ └── tests/ # Unit & integration tests
+│ └── drills/ # Resurrection drill scripts
 │
-├── .gitignore # Ignore junk files
-├── README.md # This file
+├── docker-compose.yml # Demo stack
+├── requirements.txt # Python dependencies
+└── README.md # This file
 
 
 ---
@@ -49,8 +44,8 @@ python -m venv venv
 source venv/bin/activate   # (Linux/Mac)
 venv\Scripts\activate      # (Windows)
 
-# Install SDK dependencies
-pip install -r sdk/requirements.txt
+# Install dependencies
+pip install -r requirements.txt
 
 # Run resurrection drill
 python sdk/drills/epls_demo.py --mode=local
@@ -59,10 +54,9 @@ python sdk/drills/epls_demo.py --mode=local
 ## 📦 Modules Overview
 
 - **AnchorChain/** → Smart contract + API for resurrection notarization  
-- **Deploy/** → Docker/Kubernetes configs for local/cloud deployment  
-- **Docs/** → Technical docs and guides  
-- **SDK/** → Immortal Logic SDK (Python)  
-- **Drills/** → Resurrection drill scripts (failover → recovery)  
+- **Deploy/** → Docker configs for local/cloud deployment  
+- **Docs/** → Deployment guide  
+- **SDK/** → Immortal Logic SDK (Python) with resurrection drills  
 
 ---
 

@@ -15,7 +15,8 @@ RUN wget -O /root/.foundry/bin/foundryup https://raw.githubusercontent.com/found
 
 # Install Python for deployment script
 RUN apk add --no-cache python3 py3-pip
-RUN pip3 install web3 python-dotenv --break-system-packages
+RUN pip3 install web3 python-dotenv py-solc-x --break-system-packages
+RUN python3 -c "import solcx; solcx.install_solc()"
 
 # Copy contract files
 COPY contracts/ ./contracts/

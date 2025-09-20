@@ -1,4 +1,9 @@
+# Core API dependencies
 fastapi==0.104.1
 uvicorn==0.24.0
 prometheus-client==0.19.0
+web3==6.11.3
+
+# SDK dependencies  
+requests==2.31.0
 
